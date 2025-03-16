@@ -1,0 +1,2 @@
+src/libSDL2_image_la-IMG_WIC.lo: src/IMG_WIC.c /usr/include/stdc-predef.h
+/usr/include/stdc-predef.h:
