@@ -1,3 +1,4 @@
+#include <SDL2/SDL_image.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -10,48 +11,9 @@ SDL_Texture *cursor;
 TTF_Font *font;
 struct button_t *action;
 struct tracksel_t tracksel;
+struct train_t train;
 
-SDL_Color buttonbg = { 90, 24, 201 };
-SDL_Color trackselbg = { 230, 230, 230 };
 SDL_Color buttontext = { 252, 220, 34 };
-
-void
-blit(SDL_Texture *texture, int x, int y)
-{
-	SDL_Rect dest;
-
-	dest.x = x;
-	dest.y = y;
-
-	SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h);
-	SDL_RenderCopy(renderer, texture, NULL, &dest);
-}
-
-int
-initialize_font()
-{
-	font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", FONT_SIZE);
-	if (!font) {
-		printf("Couldn't initialize font: TTF_OpenFont: %s\n",
-		    SDL_GetError());
-		return -1;
-	}
-	return 0;
-}
-
-struct button_t *
-create_button(SDL_Texture *texture, const char *bstring)
-{
-	struct button_t *tmp = malloc(sizeof(struct button_t));
-
-	if (!texture) {
-		texture = get_text_texture(font, bstring);
-	}
-	tmp->label = texture;
-	SDL_QueryTexture(tmp->label, NULL, NULL, &tmp->width, &tmp->height);
-	tmp->string = bstring;
-	return tmp;
-}
 
 void
 initialize_tracksel(struct tracksel_t *ts)
@@ -60,7 +22,7 @@ initialize_tracksel(struct tracksel_t *ts)
 
 	for (int i = 0; i < TRACK_NONE; ++i) {
 		ts->buttons[i] = create_button(game.trackdata[i].texturep,
-		    trackdesc[i]);
+		    trackdesc[i], font);
 		ts->buttons[i]->x = WINDOW_WIDTH - game.trackdata[i].width -
 		    BUTTON_BUFFER;
 		ts->buttons[i]->y = ysum;
@@ -82,98 +44,13 @@ initialize_tracksel(struct tracksel_t *ts)
 }
 
 void
-draw_tracksel(struct tracksel_t *ts)
-{
-	SDL_SetRenderDrawColor(renderer, buttonbg.r, buttonbg.g, buttonbg.b,
-	    SDL_ALPHA_OPAQUE);
-	SDL_RenderFillRect(renderer, &ts->outerbg);
-	SDL_SetRenderDrawColor(renderer, trackselbg.r, trackselbg.g,
-	    trackselbg.b, SDL_ALPHA_OPAQUE);
-	SDL_RenderFillRect(renderer, &ts->innerbg);
-
-	for (int i = 0; i < TRACK_NONE; ++i) {
-		if (game.track == i) {
-			SDL_SetRenderDrawColor(renderer, 204, 255, 255,
-			    SDL_ALPHA_OPAQUE);
-			SDL_RenderFillRect(renderer, &ts->buttons[i]->rect);
-		}
-		struct button_t *cur = ts->buttons[i];
-		blit(cur->label, cur->x, cur->y);
-	}
-}
-
-void
-append_button(struct button_t **root, char *text, SDL_Texture *btexture,
-    void (*func)(int size, maptile_t[][size]))
-{
-	if (*root == NULL) {
-		*root = create_button(btexture, text);
-		(*root)->next = NULL;
-		(*root)->fp = func;
-		return;
-	}
-
-	struct button_t *prev = *root;
-	struct button_t *cur = (*root)->next;
-
-	while (cur) {
-		prev = cur;
-		cur = cur->next;
-	}
-
-	cur = create_button(btexture, text);
-	cur->next = NULL;
-	cur->fp = func;
-	prev->next = cur;
-}
-
-void
-align_buttons(struct button_t *root)
-{
-	if (root == NULL)
-		return;
-
-	int widthsum = 0;
-	do {
-		root->width = root->width + BUTTON_BUFFER;
-		root->height = root->height + BUTTON_BUFFER;
-		widthsum += root->width;
-		root->x = WINDOW_WIDTH - widthsum - BUTTON_BUFFER;
-		root->y = WINDOW_HEIGHT - root->height - BUTTON_BUFFER;
-		root->rect = (SDL_Rect) { root->x, root->y, root->width,
-			root->height };
-		root = root->next;
-		widthsum += BUTTON_BUFFER;
-	} while (root);
-}
-
-void
-ui_draw_actions(SDL_Renderer *renderer, struct button_t *button)
-{
-	if (!button)
-		return;
-
-	SDL_Rect bg = { button->x, button->y, button->width, button->height };
-	SDL_SetRenderDrawColor(renderer, buttonbg.r, buttonbg.g, buttonbg.b,
-	    SDL_ALPHA_OPAQUE);
-	SDL_RenderFillRect(renderer, &bg);
-	blit(button->label, button->x + (BUTTON_BUFFER / 2),
-	    button->y + (BUTTON_BUFFER / 2));
-
-	ui_draw_actions(renderer, button->next);
-}
-
-void
 init_assets()
 {
-	printf("Loading object data.\n");
-
 	for (int i = 0; i < OBJ_END; i++) {
 		SDL_Texture *obj_texture = IMG_LoadTexture(renderer,
 		    objpath[i]);
 
 		if (obj_texture == NULL) {
-			printf("Couldn't load image: %s\n", objpath[i]);
 			obj_texture = IMG_LoadTexture(renderer,
 			    "./resources/EMPTY.png");
 		}
@@ -181,10 +58,7 @@ init_assets()
 		    &game.objdata[i].width, &game.objdata[i].height);
 		game.objdata[i].desc = objdesc[i];
 		game.objdata[i].texturep = obj_texture;
-		printf("%s: %d\n", game.objdata[i].desc,
-		    game.objdata[i].colspan);
 	}
-	printf("Loading track data.\n");
 
 	for (int i = 0; i < TRACK_END; i++) {
 		SDL_Texture *track_texture = IMG_LoadTexture(renderer,
@@ -200,7 +74,6 @@ init_assets()
 		SDL_QueryTexture(track_texture, NULL, NULL,
 		    &game.trackdata[i].width, &game.trackdata[i].height);
 	}
-	printf("Loading tile data.\n");
 
 	for (int i = 0; i < TILE_END; i++) {
 		SDL_Texture *tiledata_texture = IMG_LoadTexture(renderer,
@@ -214,16 +87,22 @@ init_assets()
 		game.tiledata[i].tiletexture = tiledata_texture;
 		game.tiledata[i].description = tiledesc[i];
 	}
+
+	for (int i = 0; i < 4; i++) {
+		char buf[8];
+		snprintf(buf, 7, "%d, %d", gradients[i].x, gradients[i].y);
+		gradtextures[i] = get_text_texture(font, buf);
+	}
 }
 
-double
-distance_to_center(int x, int y)
+void
+initialize_train(struct train_t *train)
 {
-	int viewpointx = game.mousepos->x + game.camera.x;
-	int viewpointy = game.mousepos->y + game.camera.y;
-
-	float res = sqrt(pow(x - viewpointx, 2) + pow(y - viewpointy, 2) * 1.0);
-	return res;
+	train->traintex = IMG_LoadTexture(renderer, "./resources/train_engine.png");
+	train->cars = 0;
+	train->speed = 0;
+	train->xy.x = STATION_START_X;
+	train->xy.y = STATION_START_Y-3;
 }
 
 void
@@ -252,18 +131,8 @@ get_input(void)
 				}
 				if (tracksel.hovered != -1) {
 					game.track = tracksel.hovered;
-				} else if (game.hoveredtile->object ==
-				    OBJ_NONE) {
-					game.hoveredtile->track = game.track;
 				}
-				if (game.track == ERASER) {
-					if (game.hoveredtile->track > 0) {
-						game.hoveredtile->track =
-						    TRACK_NONE;
-					}
-				} else
-					printf(
-					    "There is an object in the way.\n");
+				place_track(game.hoveredtile, game.track);
 			}
 			default:
 				break;
@@ -327,30 +196,17 @@ draw_tile_surface()
 	}
 }
 
-void
-draw_map()
-{
-	SDL_Rect dest;
 
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			dest.x = game.map[i][j].draw_from.x;
-			dest.y = game.map[i][j].draw_from.y;
-
-			tiledata_t *cur = &game.tiledata[game.map[i][j].tile];
-
-			blit(cur->tiletexture, CAMX(dest.x), CAMY(dest.y));
-		}
-	}
-}
 
 void
 mouse_tile_check(void)
 {
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_HEIGHT; j++) {
-			double distance = distance_to_center(
-			    game.map[i][j].center.x, game.map[i][j].center.y);
+			double distance = distance_to_center(game.mousepos->x+game.camera.x,
+			                                     game.mousepos->y+game.camera.y, 
+											    game.map[i][j].center.x,
+											    game.map[i][j].center.y);
 			if (distance < 33) {
 				game.hoveredtile = &game.map[i][j];
 			}
@@ -390,6 +246,33 @@ mouse_ui_check(void)
 }
 
 void
+draw_perlin_overlay(perlin_t *p)
+{
+	for (int i = 0; i <= p->size; i++) {
+		for (int j = 0; j <= p->size; j++) {
+			int x = j*p->size;
+			int y = i*p->size;
+
+			int gindex = p->gradient_array[i][j];
+
+			printf("draw_perlin_overlay: %d, %d\n", x, y);
+			SDL_Point src = { game.map[x][y].draw_from.x, game.map[x][y].draw_from.y };
+			SDL_Point dst = { src.x+(gradients[gindex].x*100), src.y+(gradients[gindex].y*100)};
+
+			v2vec *line = create_linevec(src, dst);
+					
+//			SDL_RenderSetScale(renderer, 3, 3);
+			SDL_SetRenderDrawColor(renderer, 252, 250, 205, SDL_ALPHA_OPAQUE);
+			SDL_RenderDrawPoints(renderer, line->points, line->len);
+//			SDL_RenderSetScale(renderer, 1, 1);
+
+			free(line);
+			blit(gradtextures[gindex], CAMX(src.x), CAMY(src.y));
+		}
+	}
+}
+
+void
 draw_debug()
 {
 	SDL_Texture *mousepos_texture;
@@ -415,20 +298,21 @@ draw_debug()
 
 	if (game.hoveredtile) {
 		snprintf(buf, DEBUG_TEXT_SIZE, "Tile Mouseover: x: %d, y: %d",
-		    game.hoveredtile->x, game.hoveredtile->y);
+		    game.hoveredtile?game.hoveredtile->x:0, game.hoveredtile?game.hoveredtile->y:0);
 		tilepos_texture = get_text_texture(font, buf);
 		if (!camerapos_texture) {
 			printf("tilepos_texture is null: %s\n", buf);
 			return;
 		}
-		SDL_DestroyTexture(tilepos_texture);
-		blit(tilepos_texture, game.camera.x, game.camera.y + 40);
 	}
 
+	draw_perlin_overlay(game.perlin);
 	blit(mousepos_texture, CAMX(game.camera.x), CAMY(game.camera.y));
 	blit(camerapos_texture, CAMX(game.camera.x), CAMY(game.camera.y + 20));
+	blit(tilepos_texture, CAMX(game.camera.x), CAMY(game.camera.y + 40));
 	SDL_DestroyTexture(mousepos_texture);
 	SDL_DestroyTexture(camerapos_texture);
+	SDL_DestroyTexture(tilepos_texture);
 	free(buf);
 }
 
@@ -446,6 +330,7 @@ cleanup()
 	for (int i = 0; i < TILE_END; i++) {
 		SDL_DestroyTexture(game.tiledata[i].tiletexture);
 	}
+	perlin_free(game.perlin);
 	SDL_DestroyRenderer(renderer);
 
 	free(game.mousepos);
@@ -462,7 +347,7 @@ game_loop(void)
 		SDL_GetMouseState(&game.mousepos->x, &game.mousepos->y);
 		draw_map();
 		draw_tile_surface();
-		ui_draw_actions(renderer, action);
+		ui_draw_actions(action);
 		draw_tracksel(&tracksel);
 		draw_debug();
 		mouse_tile_check();
@@ -488,11 +373,10 @@ main(void)
 	game.selected = NULL;
 	game.hoveredtile = NULL;
 	game.hoveredbutton = NULL;
+	game.perlin = NULL;
 	game.camera = (SDL_Rect) { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
 	game.track = 1;
 
-	//	test = create_linevec((v2){.x = 0, .y = 0}, (v2){.x = 48, .y =
-	// 40});
 	srand(time(NULL));
 	generate_map(MAP_HEIGHT, game.map);
 
@@ -508,11 +392,19 @@ main(void)
 		printf("Couldn't initialize TTF: %s\n", SDL_GetError());
 		return -1;
 	}
-	initialize_font();
+
+	font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", FONT_SIZE);
+	if (!font) {
+		printf("Couldn't initialize font: TTF_OpenFont: %s\n",
+		    SDL_GetError());
+		return -1;
+	}
+
 	init_assets();
 	initialize_tracksel(&tracksel);
-	append_button(&action, "quit", NULL, quit_game);
-	append_button(&action, "generate new map", NULL, generate_map);
+	initialize_train(&train);
+	append_button(&action, "quit", NULL, quit_game, font);
+	append_button(&action, "generate new map", NULL, generate_map, font);
 	align_buttons(action);
 
 	if (window == NULL) {

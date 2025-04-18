@@ -63,3 +63,11 @@ create_linevec_diamond(SDL_Point a, SDL_Point b, int scale)
 
 	return square;
 }
+
+double
+distance_to_center(int vx, int vy, int x, int y)
+{
+	float res = sqrt(pow(x - vx, 2) + pow(y - vy, 2) * 1.0);
+	return res;
+}
+

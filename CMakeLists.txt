@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 project(topham C)
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g3 -ggdb")
+add_compile_options(-Wall -Wextra -Wpedantic -g3 -ggdb)
 
 add_executable(${PROJECT_NAME} main.c
         grid.c
