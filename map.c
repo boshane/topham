@@ -14,11 +14,11 @@ void
 generate_map(int size, maptile_t map[][size])
 {
 	fill_map_basetile(size, map);
-	populate_objects(size, map);
+//	populate_objects(size, map);
 //	draw_river(size, map);
 //	draw_river(size, map);
 //	draw_station(size, map);
-	perlin_init(8, 8, &game.perlin);
+	perlin_init(4, 12, &game.perlin);
 	perlin(game.perlin);
 //	print_perlin_averages(game.perlin);
 }

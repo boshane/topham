@@ -16,8 +16,8 @@
 
 #define FONT_SIZE     22
 
-#define MAP_WIDTH	32
-#define MAP_HEIGHT	32
+#define MAP_WIDTH 30
+#define MAP_HEIGHT 30
 
 #define MAX_RIVER_WIDTH 5
 

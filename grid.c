@@ -1,5 +1,7 @@
 #include "topham.h"
 
+extern struct game_t game;
+
 double
 distance(SDL_Point a, SDL_Point b)
 {
@@ -19,6 +21,8 @@ create_linevec(SDL_Point veca, SDL_Point vecb)
 	for (int i = 1; i < line->len; ++i) {
 		line->points[i].x = veca.x + vecc.x * (float)i / line->len;
 		line->points[i].y = veca.y + vecc.y * (float)i / line->len;
+		line->points[i].x = CAMX(line->points[i].x);
+		line->points[i].y = CAMY(line->points[i].y);
 	}
 	return line;
 }

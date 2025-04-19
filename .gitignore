@@ -1,0 +1,9 @@
+.project
+CMakeCache.txt
+CMakeFiles
+archive
+cmake_install.cmake
+sdl
+token
+topham
+vgcore*

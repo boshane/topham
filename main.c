@@ -248,24 +248,27 @@ mouse_ui_check(void)
 void
 draw_perlin_overlay(perlin_t *p)
 {
-	for (int i = 0; i <= p->size; i++) {
-		for (int j = 0; j <= p->size; j++) {
-			int x = j*p->size;
-			int y = i*p->size;
+	float step = MAP_WIDTH/p->size;
 
-			int gindex = p->gradient_array[i][j];
+	for (int y = 0; y <= p->size; y++) {
+		for (int x = 0; x <= p->size; x++) {
+			int gindex = p->gradient_array[y][x];
+			float xi = (float)x*step;
+			float yi = (float)y*step;
+			int srcx = game.map[(int)yi][(int)xi].draw_from.x;
+			int srcy = game.map[(int)yi][(int)xi].draw_from.y;
 
-			printf("draw_perlin_overlay: %d, %d\n", x, y);
-			SDL_Point src = { game.map[x][y].draw_from.x, game.map[x][y].draw_from.y };
+			SDL_Point src = { srcx, srcy };
 			SDL_Point dst = { src.x+(gradients[gindex].x*100), src.y+(gradients[gindex].y*100)};
 
 			v2vec *line = create_linevec(src, dst);
+
+//			printf("draw_perlin_overlay(): \n\tgindex:\t\t%d\n\txi, xy:\t\t%f, %f\n\tsrcx, srcy:\t%d, %d\n", gindex, xi, yi, srcx, srcy);
 					
 //			SDL_RenderSetScale(renderer, 3, 3);
 			SDL_SetRenderDrawColor(renderer, 252, 250, 205, SDL_ALPHA_OPAQUE);
 			SDL_RenderDrawPoints(renderer, line->points, line->len);
 //			SDL_RenderSetScale(renderer, 1, 1);
-
 			free(line);
 			blit(gradtextures[gindex], CAMX(src.x), CAMY(src.y));
 		}
