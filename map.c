@@ -16,11 +16,12 @@ generate_map(int size, maptile_t map[][size])
 	fill_map_basetile(size, map);
 //	populate_objects(size, map);
 //	draw_river(size, map);
-//	draw_river(size, map);
 //	draw_station(size, map);
-	perlin_init(4, 12, &game.perlin);
+	perlin_init(8, 5, &game.perlin);
 	perlin(game.perlin);
-//	print_perlin_averages(game.perlin);
+	perlin_populate_map(size, map, game.perlin);
+	print_perlin_averages(game.perlin);
+	draw_river(size, map);
 }
 
 void
@@ -133,20 +134,32 @@ populate_objects(int size, maptile_t map[][size])
 	}
 }
 
-void
+int
 perlin_fill_gradients(perlin_t **per)
 {
-	(*per)->gradient_array = malloc((*per)->size * sizeof(GradType*));
-	for (int i = 0; i <= (*per)->size; i++) {
-		(*per)->gradient_array[i] = malloc((*per)->size * (sizeof(GradType)));
+	int arrsize = (*per)->size;
+	
+	(*per)->gradient_array = malloc((arrsize+1) * sizeof(GradType*));
+
+	if (!(*per)->gradient_array) {
+		printf("perlin_fill_gradients(): malloc failed.\n");
+		return -1;
+	}
+	for (int i = 0; i <= arrsize; i++) {
+		(*per)->gradient_array[i] = malloc((arrsize+1) * (sizeof(GradType)));
+		if (!(*per)->gradient_array[i]) {
+			printf("perlin_fill_gradients(): malloc failed.\n");
+			return -1;
+		}
 	}
 
-	for (int i = 0; i <= (*per)->size; i++) {
-		for (int j = 0; j <= (*per)->size; j++) {
+	for (int i = 0; i <= arrsize; i++) {
+		for (int j = 0; j <= arrsize; j++) {
 			int index = rand() % 4;
 			(*per)->gradient_array[i][j] = index;
 		}
 	}
+	return 0;
 }
 
 void
@@ -161,17 +174,25 @@ perlin_free(perlin_t *per)
 	free(per);
 }
 
-void
+int
 perlin_init(int size, int density, perlin_t **per)
 {
 	if (*per) perlin_free(*per);
 
 	(*per) = malloc(sizeof(perlin_t));
+
+	if (!per) {
+		printf("perlin_init(): malloc() failed\n");
+		return -1;
+	}
+
 	(*per)->size = size;
 	(*per)->density = density;
 
 	perlin_fill_gradients(per);
 	game.perlin = *per;
+
+	return 0;
 }
 
 void
@@ -188,6 +209,28 @@ print_perlin_averages(perlin_t *per)
 				if (cur < .2) { printf(". "); break; }
 				if (cur < .8) { printf("^ "); break; }
 				if (cur < .99) { printf("# "); break; }
+				printf(". ");
+				break;
+			} while(0);
+		}
+		printf("\n");
+	}
+}
+
+void
+perlin_populate_map(int size, maptile_t map[][size], perlin_t *per)
+{
+	for (int i = 0; i < MAP_HEIGHT; ++i) {
+		for (int j = 0; j < MAP_WIDTH; ++j) {
+			float cur = per->cbuf[i][j];
+			
+			do {
+//				if (cur < -1.1) { map[i][j].tile = WATER; break; }
+				if (cur < -.2) { map[i][j].object = OBJ_NONE; break; }
+				if (cur < -.09) { map[i][j].object = OBJ_NONE; break; }
+				if (cur < .08) { map[i][j].tile = GRASS_LONG; break; }
+				if (cur < .6) { map[i][j].object = FOREST; break; }
+				if (cur < .7) { map[i][j].object = FLORA; break; }
 				printf(". ");
 				break;
 			} while(0);
@@ -219,7 +262,7 @@ void perlin(perlin_t *per)
     float xf, yf;
     int xg, yg, xi, yi, gindex;
     enum MOD { TR, BR, BL, TL };
-    const SDL_Point modifiers[4] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
+    const SDL_Point gmod[4] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
     float dp[TL+1];
     int pos = 0;
    	float div = .99/(float)per->density;                         
@@ -227,6 +270,7 @@ void perlin(perlin_t *per)
 
     int pvx = per->size*per->pvalsize;
     int pvy = per->size*per->pvalsize;
+
 	per->cbuf = malloc(pvy*sizeof(float*));
 	for (int i = 0; i < pvx; ++i) {
 		per->cbuf[i] = malloc(pvx*sizeof(float)); 
@@ -238,11 +282,14 @@ void perlin(perlin_t *per)
 	    	int xstep = 0;
 	    	int ystep = 0;
 
-	    	for (float si = div; si < 1; si+=div, ystep++) {      /* within each quadrant, iterate through the rows and columns */
-	    		for (float sj = div; sj < 1; sj+=div, xstep++) {   
-		    		for (int m = 0; m <= TL; ++m) {              /* iterate through the modifiers for each corner, and assign them */
-				    	int xmod = modifiers[m].x;           
-				    	int ymod = modifiers[m].y;
+			/* within each quadrant, iterate through the rows and columns */
+	    	for (float si = div; si < 1; si+=div, ystep++) {      
+	    		for (float sj = div; sj < 1; sj+=div, xstep++) {
+	    			
+					/* iterate through the modifiers for each corner, and assign them */
+		    		for (int m = 0; m <= TL; ++m) {              
+				    	int xmod = gmod[m].x;           
+				    	int ymod = gmod[m].y;
 				
 					    gindex = per->gradient_array[xmod+i][ymod+j];
 				    	xg = gradients[gindex].x;

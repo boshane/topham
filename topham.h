@@ -16,8 +16,8 @@
 
 #define FONT_SIZE     22
 
-#define MAP_WIDTH 30
-#define MAP_HEIGHT 30
+#define MAP_WIDTH 32
+#define MAP_HEIGHT 32
 
 #define MAX_RIVER_WIDTH 5
 
@@ -230,14 +230,15 @@ void fill_map_basetile(int size, maptile_t map[][size]);
 void clear_tracks(int size, maptile_t map[][size]);
 void draw_river(int size, maptile_t map[][size]);
 void populate_objects(int size, maptile_t map[][size]);
-void perlin_fill_gradients(perlin_t **per);
-void perlin_init(int size, int density, perlin_t **per);
+int perlin_fill_gradients(perlin_t **per);
+int perlin_init(int size, int density, perlin_t **per);
 void print_perlin_averages(perlin_t *per);
 float lerp(float a, float b, float f);
 float point_dot_product(float xg, float yg, float xi, float yi);
 void perlin(perlin_t *per);
 void perlin_free(perlin_t *per);
 void place_track(maptile_t *tile, Tracks selected);
+void perlin_populate_map(int size, maptile_t map[][size], perlin_t *per);
 
 /* draw.c functions */
 int blit(SDL_Texture *texture, int x, int y);
