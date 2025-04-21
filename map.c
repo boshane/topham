@@ -17,11 +17,11 @@ generate_map(int size, maptile_t map[][size])
 //	populate_objects(size, map);
 //	draw_river(size, map);
 //	draw_station(size, map);
-	perlin_init(8, 5, &game.perlin);
+	perlin_init(12, 16, &game.perlin);
 	perlin(game.perlin);
 	perlin_populate_map(size, map, game.perlin);
 	print_perlin_averages(game.perlin);
-	draw_river(size, map);
+//	draw_river(size, map);
 }
 
 void
@@ -225,13 +225,14 @@ perlin_populate_map(int size, maptile_t map[][size], perlin_t *per)
 			float cur = per->cbuf[i][j];
 			
 			do {
-//				if (cur < -1.1) { map[i][j].tile = WATER; break; }
+				if (cur < -1.1) { map[i][j].tile = WATER; break; }
 				if (cur < -.2) { map[i][j].object = OBJ_NONE; break; }
 				if (cur < -.09) { map[i][j].object = OBJ_NONE; break; }
 				if (cur < .08) { map[i][j].tile = GRASS_LONG; break; }
+				if (cur < .12) { map[i][j].tile = ROCKS_LARGE; break; }
 				if (cur < .6) { map[i][j].object = FOREST; break; }
 				if (cur < .7) { map[i][j].object = FLORA; break; }
-				printf(". ");
+				map[i][j].tile = GRASS_SHORT;
 				break;
 			} while(0);
 		}
@@ -253,7 +254,7 @@ float point_dot_product(float xg, float yg, float xi, float yi)
 /* from Ken Perlin's paper */
 float fade(float t)
 {
-	return ((6*t - 15)*t+10)*t*t*t;
+	return t*t*t*(t*(t*6-15)+10);
 }
 
 void perlin(perlin_t *per)
@@ -275,6 +276,7 @@ void perlin(perlin_t *per)
 	for (int i = 0; i < pvx; ++i) {
 		per->cbuf[i] = malloc(pvx*sizeof(float)); 
 	}
+	int count = 0;
 
     for (int i = 0; i < per->size; ++i) {
 	    for (int j = 0; j < per->size; ++j) {
@@ -283,8 +285,8 @@ void perlin(perlin_t *per)
 	    	int ystep = 0;
 
 			/* within each quadrant, iterate through the rows and columns */
-	    	for (float si = div; si < 1; si+=div, ystep++) {      
-	    		for (float sj = div; sj < 1; sj+=div, xstep++) {
+	    	for (float si = div; ystep < per->pvalsize; si+=div, ystep++) {      
+	    		for (float sj = div; xstep < per->pvalsize; sj+=div, xstep++) {
 	    			
 					/* iterate through the modifiers for each corner, and assign them */
 		    		for (int m = 0; m <= TL; ++m) {              
@@ -298,11 +300,17 @@ void perlin(perlin_t *per)
 					    yi = (int)(j-j)+ymod;
 					    dp[m] = point_dot_product(xg, yg, sj-xi, si-yi);
 	    			}
-				    float x1 = lerp(dp[TL], dp[TR], si);
-				    float x2 = lerp(dp[BL], dp[BR], si);
-				    float average = lerp(x1, x2, sj);
+	    			float u = fade(si);
+	    			float v = fade(sj);
+				    float x1 = lerp(dp[TL], dp[TR], u);
+				    float x2 = lerp(dp[BL], dp[BR], u);
+				    float average = lerp(x1, x2, v);
+//				    printf("perlin():\n\taverage: %f\n\tx1,x2:\t%f,%f\n\tsi, sj:\t%f,%f\n\ti,j:\t%d,%d\n\tcount: %d\n",average,x1,x2,si,sj,i,j,count);
 				    per->cbuf[ystep+(i*per->pvalsize)][xstep+(j*per->pvalsize)] = average;
+				    count++;
 //					printf("%d, %d : ", xstep+(j*per->pvalsize), ystep+(i*per->pvalsize));
+
+ 
 		    	}
 		    	xstep = 0;
 			}
