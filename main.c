@@ -2,6 +2,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 #include "topham.h"
 
 struct game_t game;
@@ -12,8 +15,43 @@ TTF_Font *font;
 struct button_t *action;
 struct tracksel_t tracksel;
 struct train_t train;
+struct termios tios_new;
+struct termios tios_prev;
+struct winsize term_size;
 
 SDL_Color buttontext = { 252, 220, 34 };
+
+int
+term_init()
+{
+	int retval;
+
+	retval = tcgetattr(STDIN_FILENO, &tios_prev);
+	if (retval == -1) {
+		return -1;
+	}
+
+	retval = tcgetattr(STDIN_FILENO, &tios_new);
+	if (retval == -1) {
+		return -1;
+	}
+
+	tios_new.c_lflag &= ~(ICANON | ECHO | IEXTEN | ISIG);
+	tios_new.c_iflag &= ~(BRKINT | ICRNL | ISTRIP | INPCK | IXON);
+	tios_new.c_oflag &= ~(OPOST);
+	tios_new.c_cc[VMIN] = 1;
+	tios_new.c_cc[VTIME] = 0;
+
+	retval = tcsetattr(STDIN_FILENO, TCSAFLUSH, &tios_new);
+	if (retval == -1) {
+		return -1;
+	}
+
+	retval = ioctl(1, TIOCGWINSZ, &term_size);
+	if (retval == -1) {
+		return -1;
+	}
+}
 
 void
 initialize_tracksel(struct tracksel_t *ts)
@@ -348,6 +386,7 @@ game_loop(void)
 		SDL_SetRenderDrawColor(renderer, 51, 153, 51, SDL_ALPHA_OPAQUE);
 		SDL_RenderClear(renderer);
 		SDL_GetMouseState(&game.mousepos->x, &game.mousepos->y);
+		print_perlin_averages(game.perlin, game.hoveredtile);
 		draw_map();
 		draw_tile_surface();
 		ui_draw_actions(action);
@@ -403,6 +442,10 @@ main(void)
 		return -1;
 	}
 
+	if (term_init() != 0) {
+		printf("terminal could not be initialized.\n");
+		return -1;
+	}
 	init_assets();
 	initialize_tracksel(&tracksel);
 	initialize_train(&train);
@@ -422,5 +465,8 @@ main(void)
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
+
+	CLEAR_CONSOLE();
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &tios_prev);
 	return 0;
 }

@@ -16,7 +16,7 @@ blit(SDL_Texture *texture, int x, int y)
 
 	/* get the width and height of the texture */
 	if (SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h) != 0) {
-		printf("blit() x: %d, y: %d -- SDL_QueryTexture() failed; %s\n", x, y, SDL_GetError());
+//		printf("blit() x: %d, y: %d -- SDL_QueryTexture() failed; %s\n", x, y, SDL_GetError());
 		return -1;
 	}
 

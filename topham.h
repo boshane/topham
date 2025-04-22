@@ -16,8 +16,8 @@
 
 #define FONT_SIZE     22
 
-#define MAP_WIDTH 120
-#define MAP_HEIGHT 120
+#define MAP_WIDTH 32
+#define MAP_HEIGHT 32
 
 #define MAX_RIVER_WIDTH 5
 
@@ -32,6 +32,11 @@
 
 #define STATION_START_X 2
 #define STATION_START_Y 8
+
+#define CLEAR_CONSOLE() (printf("\x1b[H\x1b[j\n"))
+#define CURSOR_ROW_COL(i, j) (printf("\x1b[%d;%dH",i,j))
+#define CURSOR_ROW(i) (printf("\x1b[H\x1b[%dB",i))
+#define CURSOR_COL(j) (printf("\x1b[H\x1b[%dC",j))
 
 #define X_TRACKTYPES  \
 	X(TLBL)       \
@@ -232,7 +237,7 @@ void draw_river(int size, maptile_t map[][size]);
 void populate_objects(int size, maptile_t map[][size]);
 int perlin_fill_gradients(perlin_t **per);
 int perlin_init(int size, int density, perlin_t **per);
-void print_perlin_averages(perlin_t *per);
+void print_perlin_averages(perlin_t *per, maptile_t *hoveredtile);
 float lerp(float a, float b, float f);
 float point_dot_product(float xg, float yg, float xi, float yi);
 void perlin(perlin_t *per);

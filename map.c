@@ -20,7 +20,6 @@ generate_map(int size, maptile_t map[][size])
 	perlin_init(12, 16, &game.perlin);
 	perlin(game.perlin);
 	perlin_populate_map(size, map, game.perlin);
-	print_perlin_averages(game.perlin);
 //	draw_river(size, map);
 }
 
@@ -196,24 +195,75 @@ perlin_init(int size, int density, perlin_t **per)
 }
 
 void
-print_perlin_averages(perlin_t *per)
+print_perlin_averages(perlin_t *per, maptile_t *hoveredtile)
 {
-	for (int i = 0; i < per->size*per->pvalsize; ++i) {
-		for (int j = 0; j < per->size*per->pvalsize; ++j) {
-			float cur = per->cbuf[i][j];
+	if (!hoveredtile) return;
+	
+	char mapgrid[11][256] = { '\0' };
+
+
+	int startx = hoveredtile->x-5;
+	int starty = hoveredtile->y-5;
+	int mousex, mousey;
+
+	startx<0?startx=0:0;
+	starty<0?starty=0:0;
+
+	for (int i = 0; i < 10; ++i) {
+		snprintf(&mapgrid[i][32], 4, "   ");
+
+		for (int j = 0; j < 10; ++j) {
+			float cur = per->cbuf[starty+i][startx+j];
 			
 			do {
-				if (cur < -.5) { printf("_ "); break; }
-				if (cur < -.2) { printf("~ "); break; }
-				if (cur < -.09) { printf("- "); break; }
-				if (cur < .2) { printf(". "); break; }
-				if (cur < .8) { printf("^ "); break; }
-				if (cur < .99) { printf("# "); break; }
-				printf(". ");
+				if (j==0) {
+					mapgrid[i][0] = ' ';
+				} else mapgrid[i][(j*2)-1] = ' ';
+				
+				if (cur < -1.1) { mapgrid[i][j*2] = '_'; break; }
+				if (cur < -.2) { mapgrid[i][j*2] = '~'; break; }
+				if (cur < -.09) { mapgrid[i][j*2] = '-'; break; }
+				if (cur < .08) { mapgrid[i][j*2] = '.'; break; }
+				if (cur < .12) { mapgrid[i][j*2] = '^'; break; }
+				if (cur < .6) { mapgrid[i][j*2] = '#'; break; }
+				if (cur < .7) { mapgrid[i][j*2] = '*'; break; }
+				mapgrid[i][j*2] = '.';
 				break;
+
 			} while(0);
+
+			if (hoveredtile->x<5) {
+				mousex = (5-(5-hoveredtile->x))*12+32;				
+			}
+			else if (hoveredtile->x>(MAP_WIDTH-5)) {
+				mousex = ((j-(MAP_WIDTH-hoveredtile->x)+1)*12+32);
+			}
+			else mousex = 5*12+32;
+
+			if (hoveredtile->y<5) {
+				mousey = (5-(5-hoveredtile->y));				
+			}
+			else if (hoveredtile->y>(MAP_HEIGHT-5)) {
+				mousey = ((i-(MAP_HEIGHT-hoveredtile->y)+1));
+			}
+			else mousey = 5;
+
+
+			snprintf(&mapgrid[i][j*12+32], 10, "\t%.3f", cur);
 		}
-		printf("\n");
+	}
+	snprintf(&mapgrid[10][0], 48, "mousepos: %d, %d", mousex, mousey);
+	printf("\x1b[1;1H");
+
+	CLEAR_CONSOLE();
+
+	for (int i = 0; i < 11; ++i) {
+		for (int j = 0; j < 256; j++) {
+			if (j==mousex && i==mousey) printf("\x1b[48;5;128m");			
+			putchar(mapgrid[i][j]);
+			if (j==mousex+6 && i==mousey) printf("\x1b[0m");
+		}
+		printf("\x1b[E");
 	}
 }
 
@@ -288,11 +338,12 @@ void perlin(perlin_t *per)
 	    	for (float si = div; ystep < per->pvalsize; si+=div, ystep++) {      
 	    		for (float sj = div; xstep < per->pvalsize; sj+=div, xstep++) {
 	    			
-					/* iterate through the modifiers for each corner, and assign them */
 		    		for (int m = 0; m <= TL; ++m) {              
+		    			/* starting with the top left corner, get the associated +/- x/y modifier */
 				    	int xmod = gmod[m].x;           
 				    	int ymod = gmod[m].y;
 				
+
 					    gindex = per->gradient_array[xmod+i][ymod+j];
 				    	xg = gradients[gindex].x;
 					    yg = gradients[gindex].y;
