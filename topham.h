@@ -1,42 +1,42 @@
 #ifndef TOPHAM_H
 #define TOPHAM_H
 
-#include <stdbool.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include <stdbool.h>
 
-#define CAMX(i) (i - game.camera.x)
-#define CAMY(i) (i - game.camera.y)
+#define CAMX(i)		     (i - game.camera.x)
+#define CAMY(i)		     (i - game.camera.y)
 
-#define BUTTON_BUFFER 20
+#define BUTTON_BUFFER	     20
 
-#define WINDOW_WIDTH  1600
-#define WINDOW_HEIGHT 1200
+#define WINDOW_WIDTH	     1600
+#define WINDOW_HEIGHT	     1200
 
-#define FONT_SIZE     22
+#define FONT_SIZE	     22
 
-#define MAP_WIDTH 32
-#define MAP_HEIGHT 32
+#define MAP_WIDTH	     128
+#define MAP_HEIGHT	     128
 
-#define MAX_RIVER_WIDTH 5
+#define MAX_RIVER_WIDTH	     5
 
-#define MODNUM		25
+#define MODNUM		     25
 
-#define TILE_HEIGHT	60
-#define TILE_WIDTH	120
+#define TILE_HEIGHT	     60
+#define TILE_WIDTH	     120
 
-#define DEBUG_TEXT_SIZE 48
+#define DEBUG_TEXT_SIZE	     48
 
-#define CAMERA_SPEED	50
+#define CAMERA_SPEED	     50
 
-#define STATION_START_X 2
-#define STATION_START_Y 8
+#define STATION_START_X	     2
+#define STATION_START_Y	     8
 
-#define CLEAR_CONSOLE() (printf("\x1b[H\x1b[j\n"))
-#define CURSOR_ROW_COL(i, j) (printf("\x1b[%d;%dH",i,j))
-#define CURSOR_ROW(i) (printf("\x1b[H\x1b[%dB",i))
-#define CURSOR_COL(j) (printf("\x1b[H\x1b[%dC",j))
+#define CLEAR_CONSOLE()	     (printf("\x1b[H\x1b[j\n"))
+#define CURSOR_ROW_COL(i, j) (printf("\x1b[%d;%dH", i, j))
+#define CURSOR_ROW(i)	     (printf("\x1b[H\x1b[%dB", i))
+#define CURSOR_COL(j)	     (printf("\x1b[H\x1b[%dC", j))
 
 #define X_TRACKTYPES  \
 	X(TLBL)       \
@@ -96,16 +96,11 @@ typedef struct {
 	int x, y;
 } Point;
 
-typedef enum {
-	TOPRIGHT,
-	BOTTOMRIGHT,
-	BOTTOMLEFT,
-	TOPLEFT
-} GradType;
+typedef enum { TOPRIGHT, BOTTOMRIGHT, BOTTOMLEFT, TOPLEFT } GradType;
 
-static const Point gradients[4] = { { -1, -1, },
-	{ -1, 1 }, { 1, -1 }, { 1, 1 } };
-static SDL_Texture* gradtextures[4];
+static const Point gradients[4] = { { -1, -1 }, { -1, 1 }, { 1, -1 },
+	{ 1, 1 } };
+static SDL_Texture *gradtextures[4];
 
 static const Point modifiers[MODNUM] = { { -1, -1 }, { -1, 0 }, { -1, 1 },
 	{ 0, -1 }, { 0, 0 }, { 0, 1 }, { 1, -1 }, { 1, 0 }, { 1, 1 },
@@ -113,11 +108,13 @@ static const Point modifiers[MODNUM] = { { -1, -1 }, { -1, 0 }, { -1, 1 },
 	{ -1, 2 }, { 0, -2 }, { 0, 2 }, { 1, -2 }, { 1, 2 }, { 2, -2 },
 	{ 2, -1 }, { 2, 0 }, { 2, 1 }, { 2, 2 } };
 
-static char const *trackdesc[TRACK_END] = { "Curve from top left to bottom left",
+static char const *trackdesc[TRACK_END] = {
+	"Curve from top left to bottom left",
 	"Curve from top right to bottom right",
 	"Straight from top right to bottom left",
 	"Straight from top left to bottom right", "Bottom left stopper",
-	"Track eraser", "NONE" };
+	"Track eraser", "NONE"
+};
 
 static char const *objdesc[OBJ_END] = { "Light flora", "Forest", "Logs", "Barn",
 	"Barn", "Station", "NONE" };
@@ -134,6 +131,12 @@ static char const *tiledesc[TILE_END] = {
 };
 
 typedef struct {
+	SDL_Texture *texturep;
+	const char *path;
+	int w, h;
+} texture_t;
+
+typedef struct {
 	int x, y;
 	struct SDL_Point center;
 	struct SDL_Point draw_from;
@@ -143,10 +146,11 @@ typedef struct {
 } maptile_t;
 
 typedef struct {
-  char const *desc;
+	char const *desc;
 	int width, height;
 	int colspan;
 	SDL_Texture *texturep;
+	texture_t *tex;
 } objdata_t;
 
 typedef struct {
@@ -189,8 +193,8 @@ typedef struct {
 	int pvaltotal;
 	GradType **gradient_array;
 	float **cbuf;
-	SDL_Texture** gradient_str;
-}perlin_t;
+	SDL_Texture **gradient_str;
+} perlin_t;
 
 struct game_t {
 	objdata_t objdata[OBJ_END];
@@ -229,6 +233,7 @@ v2vec **create_linevec_diamond(SDL_Point a, SDL_Point b, int scale);
 double distance_to_center(int vx, int vy, int x, int y);
 
 /* map.c functions */
+void init_assets();
 void generate_map(int size, maptile_t map[][size]);
 void draw_station(int size, maptile_t map[][size]);
 void fill_map_basetile(int size, maptile_t map[][size]);
@@ -250,7 +255,9 @@ int blit(SDL_Texture *texture, int x, int y);
 SDL_Texture *get_text_texture(TTF_Font *font, const char *text);
 void *draw_square(SDL_Rect r);
 void *draw_diamond(SDL_Rect r);
-struct button_t* create_button(SDL_Texture *texture, const char *bstring, TTF_Font *font);
+void initialize_tracksel(struct tracksel_t *ts, TTF_Font *font);
+struct button_t *create_button(SDL_Texture *texture, const char *bstring,
+    TTF_Font *font);
 void draw_train(struct train_t *train);
 void draw_tracksel(struct tracksel_t *ts);
 void ui_draw_actions(struct button_t *button);

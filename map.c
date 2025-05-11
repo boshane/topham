@@ -18,7 +18,7 @@ generate_map(int size, maptile_t map[][size])
 	//	populate_objects(size, map);
 	//	draw_river(size, map);
 	//	draw_station(size, map);
-	perlin_init(12, 16, &game.perlin);
+	perlin_init(24, 12, &game.perlin);
 	perlin(game.perlin);
 	perlin_populate_map(size, map, game.perlin);
 	//	draw_river(size, map);
@@ -219,25 +219,18 @@ print_perlin_averages(perlin_t *per, maptile_t *hoveredtile)
 			float cur = per->cbuf[starty + i][startx + j];
 
 			do {
-				if (j == 0) {
-					mapgrid[i][0] = ' ';
-				} else
-					mapgrid[i][(j * 2) - 1] = ' ';
+				mapgrid[i][(j * 2) - 1] = ' ';
 
-				if (cur < -1.1) {
-					mapgrid[i][j * 2] = '_';
+				if (cur < -.4) {
+					mapgrid[i][j * 2] = ' ';
 					break;
 				}
-				if (cur < -.2) {
+				if (cur < -.25) {
 					mapgrid[i][j * 2] = '~';
 					break;
 				}
-				if (cur < -.09) {
-					mapgrid[i][j * 2] = '-';
-					break;
-				}
-				if (cur < .08) {
-					mapgrid[i][j * 2] = '.';
+				if (cur < -.08) {
+					mapgrid[i][j * 2] = '|';
 					break;
 				}
 				if (cur < .12) {
@@ -245,14 +238,14 @@ print_perlin_averages(perlin_t *per, maptile_t *hoveredtile)
 					break;
 				}
 				if (cur < .6) {
-					mapgrid[i][j * 2] = '#';
+					mapgrid[i][j * 2] = '+';
 					break;
 				}
 				if (cur < .7) {
 					mapgrid[i][j * 2] = '*';
 					break;
 				}
-				mapgrid[i][j * 2] = '.';
+				mapgrid[i][j * 2] = ' ';
 				break;
 
 			} while (0);
@@ -275,7 +268,7 @@ print_perlin_averages(perlin_t *per, maptile_t *hoveredtile)
 			} else
 				mousey = 5;
 
-			snprintf(&mapgrid[i][j * 12 + 32], 10, "\t%.3f", cur);
+			snprintf(&mapgrid[i][j * 12 + 32], 10, "\t%.2f ", cur);
 		}
 	}
 	snprintf(&mapgrid[10][0], 48, "mousepos: %d, %d", mousex, mousey);
@@ -303,16 +296,12 @@ perlin_populate_map(int size, maptile_t map[][size], perlin_t *per)
 			float cur = per->cbuf[i][j];
 
 			do {
-				if (cur < -1.1) {
+				if (cur < -.4) {
+					map[i][j].object = OBJ_NONE;
+					break;
+				}
+				if (cur < -.25) {
 					map[i][j].tile = WATER;
-					break;
-				}
-				if (cur < -.2) {
-					map[i][j].object = OBJ_NONE;
-					break;
-				}
-				if (cur < -.09) {
-					map[i][j].object = OBJ_NONE;
 					break;
 				}
 				if (cur < .08) {
@@ -409,11 +398,11 @@ perlin(perlin_t *per)
 						dp[m] = point_dot_product(xg,
 						    yg, sj - xi, si - yi);
 					}
-					float u = fade(si);
-					float v = fade(sj);
-					float x1 = lerp(dp[TL], dp[TR], u);
-					float x2 = lerp(dp[BL], dp[BR], u);
-					float average = lerp(x1, x2, v);
+					float x1 = lerp(dp[TL], dp[TR], si);
+					float x2 = lerp(dp[BL], dp[BR], si);
+					x1 = fade(x1);
+					x2 = fade(x2);
+					float average = lerp(x1, x2, sj);
 					//				    printf("perlin():\n\taverage:
 					//%f\n\tx1,x2:\t%f,%f\n\tsi,
 					//sj:\t%f,%f\n\ti,j:\t%d,%d\n\tcount:

@@ -54,34 +54,6 @@ term_init()
 }
 
 void
-initialize_tracksel(struct tracksel_t *ts)
-{
-	int ysum = BUTTON_BUFFER;
-
-	for (int i = 0; i < TRACK_NONE; ++i) {
-		ts->buttons[i] = create_button(game.trackdata[i].texturep,
-		    trackdesc[i], font);
-		ts->buttons[i]->x = WINDOW_WIDTH - game.trackdata[i].width -
-		    BUTTON_BUFFER;
-		ts->buttons[i]->y = ysum;
-		ts->buttons[i]->selected = i;
-		ts->buttons[i]->rect = (SDL_Rect) { ts->buttons[i]->x,
-			ts->buttons[i]->y, ts->buttons[i]->width,
-			ts->buttons[i]->height };
-
-		// don't buffer below the final track button
-		if (i != TRACK_NONE - 1)
-			ysum += ts->buttons[i]->height + BUTTON_BUFFER;
-		else
-			ysum += ts->buttons[i]->height;
-	}
-	ts->outerbg = (SDL_Rect) { ts->buttons[0]->x - 10,
-		ts->buttons[0]->y - 10, ts->buttons[0]->width + 20, ysum + 20 };
-	ts->innerbg = (SDL_Rect) { ts->buttons[0]->x, ts->buttons[0]->y,
-		ts->buttons[0]->width, ysum };
-}
-
-void
 init_assets()
 {
 	for (int i = 0; i < OBJ_END; i++) {
@@ -447,7 +419,7 @@ main(void)
 		return -1;
 	}
 	init_assets();
-	initialize_tracksel(&tracksel);
+	initialize_tracksel(&tracksel, font);
 	initialize_train(&train);
 	append_button(&action, "quit", NULL, quit_game, font);
 	append_button(&action, "generate new map", NULL, generate_map, font);

@@ -81,6 +81,34 @@ draw_diamond(SDL_Rect r)
 	SDL_RenderSetScale(renderer, 1, 1);
 }
 
+void
+initialize_tracksel(struct tracksel_t *ts, TTF_Font *font)
+{
+	int ysum = BUTTON_BUFFER;
+
+	for (int i = 0; i < TRACK_NONE; ++i) {
+		ts->buttons[i] = create_button(game.trackdata[i].texturep,
+		    trackdesc[i], font);
+		ts->buttons[i]->x = WINDOW_WIDTH - game.trackdata[i].width -
+		    BUTTON_BUFFER;
+		ts->buttons[i]->y = ysum;
+		ts->buttons[i]->selected = i;
+		ts->buttons[i]->rect = (SDL_Rect) { ts->buttons[i]->x,
+			ts->buttons[i]->y, ts->buttons[i]->width,
+			ts->buttons[i]->height };
+
+		// don't buffer below the final track button
+		if (i != TRACK_NONE - 1)
+			ysum += ts->buttons[i]->height + BUTTON_BUFFER;
+		else
+			ysum += ts->buttons[i]->height;
+	}
+	ts->outerbg = (SDL_Rect) { ts->buttons[0]->x - 10,
+		ts->buttons[0]->y - 10, ts->buttons[0]->width + 20, ysum + 20 };
+	ts->innerbg = (SDL_Rect) { ts->buttons[0]->x, ts->buttons[0]->y,
+		ts->buttons[0]->width, ysum };
+}
+
 struct button_t *
 create_button(SDL_Texture *texture, const char *bstring, TTF_Font *font)
 {
